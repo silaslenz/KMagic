@@ -26,6 +26,3 @@ target_include_directories(${PROJECT} PUBLIC
 # Configure compilation flags and libraries for the example... see the corresponding function
 # in hw/bsp/FAMILY/family.cmake for details.
 family_configure_host_example(${PROJECT})
-
-pico_enable_stdio_usb(${PROJECT} 1)
-pico_enable_stdio_uart(${PROJECT} 0)

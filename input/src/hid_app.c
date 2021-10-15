@@ -111,6 +111,13 @@ void tuh_hid_mount_cb(uint8_t dev_addr, uint8_t instance, uint8_t const* desc_re
     hid_info[instance].report_count = tuh_hid_parse_report_descriptor(hid_info[instance].report_info, MAX_REPORT, desc_report, desc_len);
     printf("HID has %u reports \r\n", hid_info[instance].report_count);
   }
+
+    // request to receive report
+  // tuh_hid_report_received_cb() will be invoked when report is available
+  if ( !tuh_hid_receive_report(dev_addr, instance) )
+  {
+    printf("Error: cannot request to receive report\r\n");
+  }
 }
 
 // Invoked when device with hid interface is un-mounted
@@ -141,42 +148,68 @@ void tuh_hid_report_received_cb(uint8_t dev_addr, uint8_t instance, uint8_t cons
       process_generic_report(dev_addr, instance, report, len);
     break;
   }
+
+  // continue to request to receive report
+  if ( !tuh_hid_receive_report(dev_addr, instance) )
+  {
+    printf("Error: cannot request to receive report\r\n");
+  }
 }
 
 //--------------------------------------------------------------------+
 // Keyboard
 //--------------------------------------------------------------------+
 
+static uint8_t escape_g(uint8_t keycode){
+  if (keycode == 0x0a){
+    return 0x92;
+  }
+  else {
+    return keycode;
+  }
+}
 static void process_kbd_report(hid_keyboard_report_t const *report)
-{  
-  if (report->keycode[0] == 0x49 && uartdev == uart1){
+{
+  printf("%u uart, uart0 %u, uart1 %u \r\n", uartdev, uart0, uart1);
+  printf("modifier %u\r\n", report-> modifier);
+
+  printf("keycode0 %u\r\n", report-> keycode[0]);
+  printf("keycode1 %u\r\n", report-> keycode[0]);
+  printf("keycode switch? %u\r\n", report-> keycode[0] == 0x35);
+
+
+  if (report->modifier == 0x04 && report-> keycode[0] == 0x35 && uartdev == uart1){
+    printf("Switching to uart 0\r\n");
+
     board_led_write(false);
     uartdev = uart0;
+    return;
   }
-  else if (report->keycode[0] == 0x49 && uartdev == uart0){
+  if (report->modifier == 0x04 && report-> keycode[0] == 0x35 && uartdev == uart0){
+    printf("Switching to uart 1\r\n");
     board_led_write(true);
     uartdev = uart1;
+    return;
   }
   
   while (!uart_is_writable(uartdev)){}
-  uart_putc_raw(uartdev, 0x10);
+  uart_putc_raw(uartdev, 0x30);
   while (!uart_is_writable(uartdev)){}
   uart_putc_raw(uartdev, report->modifier);
   while (!uart_is_writable(uartdev)){}
-  uart_putc_raw(uartdev, report->keycode[0]);
+  uart_putc_raw(uartdev, escape_g(report->keycode[0]));
   while (!uart_is_writable(uartdev)){}
-  uart_putc_raw(uartdev, report->keycode[1]);
+  uart_putc_raw(uartdev, escape_g(report->keycode[1]));
   while (!uart_is_writable(uartdev)){}
-  uart_putc_raw(uartdev, report->keycode[2]);
+  uart_putc_raw(uartdev, escape_g(report->keycode[2]));
   while (!uart_is_writable(uartdev)){}
-  uart_putc_raw(uartdev, report->keycode[3]);
+  uart_putc_raw(uartdev, escape_g(report->keycode[3]));
   while (!uart_is_writable(uartdev)){}
-  uart_putc_raw(uartdev, report->keycode[4]);
+  uart_putc_raw(uartdev, escape_g(report->keycode[4]));
   while (!uart_is_writable(uartdev)){}
-  uart_putc_raw(uartdev, report->keycode[5]);
+  uart_putc_raw(uartdev, escape_g(report->keycode[5]));
   while (!uart_is_writable(uartdev)){}
   uart_puts(uartdev, "\n");
-
 }
 
 //--------------------------------------------------------------------+
