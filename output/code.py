@@ -24,11 +24,12 @@ Uses Circuitpython together with Adafruits HID library.
 """
 import board
 import busio
+
+
 import usb_hid
 
 from adafruit_hid.keyboard import Keyboard
 from adafruit_hid.mouse import Mouse
-from adafruit_hid.keycode import Keycode
 
 # Set up a keyboard device.
 kbd = Keyboard(usb_hid.devices)
@@ -55,6 +56,13 @@ def twos_comp(val, bits=8):
     return val  # return positive value as is
 
 
+def escape_g(keycode):
+    if keycode == 0x92:
+        return 0x0A
+    else:
+        return keycode
+
+
 uart = busio.UART(None, board.GP1, baudrate=115200)
 
 while True:
@@ -62,9 +70,12 @@ while True:
 
     if data is not None:
         print(data)
-        if data[0] == 0x10 and len(data) == 9:
+        if data[0] == 0x30 and len(data) == 9:
             modifier = data[1]
-            keys = [data[2], data[3], data[4], data[5], data[6], data[7]]
+            keys = [
+                escape_g(keycode)
+                for keycode in [data[2], data[3], data[4], data[5], data[6], data[7]]
+            ]
 
             modifiers = []
             if modifier:
@@ -94,7 +105,7 @@ while True:
                 twos_comp(data[3]),
                 twos_comp(data[4]),
             )
-            print(int(buttons), int(x), int(y), int(wheel))
+            print(int(buttons),int(x),int(y),int(wheel))
             mouse.move(x, y, wheel)
 
             if buttons and buttons != last_buttons:
